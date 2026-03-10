@@ -1,75 +1,577 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="fr">
+<head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🧱 Lego | Predictability of a lego set deal</title>
-  </head>
-  <body>
-    <h1>Lego</h1>
-    <section id="options">
-      <div id="show">
-        <label for="show-select">Show:</label>
-        <select name="show" id="show-select">
-          <option value="6">6</option>
-          <option value="12">12</option>
-          <option value="24">24</option>
-        </select>
-      </div>
-      <div id="page">
-        <label for="page-select">Go to page:</label>
-        <select name="page" id="page-select"> </select>
-      </div>
-      <div id="filters">
-        <span>By best discount</span>
-        <span>By most commented</span>
-        <span>By hot deals</span>
-      </div>
-      <div id="sort">
-        <label for="sort-select">Sort:</label>
-        <select name="sort" id="sort-select">
-          <option value="price-asc">Cheaper</option>
-          <option value="price-desc">Expensive</option>
-          <option value="date-asc">Recently published</option>
-          <option value="date-desc">Anciently published</option>
-        </select>
-      </div>
-    </section>
-    <section id="lego">
-      <h2>Lego sets</h2>
-      <div>
-        <label>Lego set id:</label>
-        <select id="lego-set-id-select"></select> 
-      </div>
-    </section>
-    <section id="indicators">
-      <h2>Indicators</h2>
-      <div>
-        <span>Number of deals</span>
-        <span id="nbDeals">0</span>
-      </div>
-      <div>
-        <span>Number of sales</span>
-        <span id="nbSales">0</span>
-      </div>
-      <div>
-        <span>p5 sales price value</span>
-        <span>0</span>
-      </div>
-      <div>
-        <span>p25 sales price value</span>
-        <span>0</span>
-      </div>
-      <div>
-        <span>p50 sales price value</span>
-        <span>0</span>
-      </div>
-      <div>
-        <span>Lifetime value</span>
-        <span>10 days</span>
-      </div>
-    </section>
-    <section id="deals"></section>
+    <style>
+        :root {
+            --primary: #E3000B; /* Lego Red */
+            --primary-hover: #cc000a;
+            --secondary: #FFD500;
+            --bg-color: #f2f3f5; /* DealLabs like background */
+            --text-color: #333;
+            --text-light: #70757a;
+            --card-bg: #fff;
+            --border-color: #e2e8f0;
+            --border-radius: 8px;
+            --hot-color: #ff4500;
+            --price-color: #00a650; /* Amazon/DealLabs green for good prices */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        /* --- HEADER --- */
+        header {
+            background-color: #232f3e; /* Amazon dark blue */
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        header h1 { font-size: 22px; display: flex; align-items: center; gap: 10px;}
+        
+        /* --- MAIN LAYOUT --- */
+        .container {
+            max-width: 1300px;
+            margin: 20px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 350px; /* Main feed | Sidebar */
+            gap: 25px;
+        }
+
+        @media (max-width: 992px) {
+            .container { grid-template-columns: 1fr; }
+            #sidebar { order: -1; } /* Sidebar (Set selection) goes on top on mobile */
+        }
+
+        h2 { font-size: 18px; margin-bottom: 15px; color: #111; }
+
+        /* --- LEFT COLUMN: DEALS FEED --- */
+        .feed-header {
+            background: var(--card-bg);
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .filters-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            background: #f1f1f1;
+            border: 1px solid #ddd;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+        .filter-chip:hover { background: #e2e2e2; }
+        .filter-chip input { cursor: pointer; }
+
+        .sort-select {
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            background: #f9f9f9;
+            font-size: 14px;
+        }
+
+        /* Deal List / Cards */
+        .deal-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .deal-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            display: flex;
+            gap: 20px;
+            transition: box-shadow 0.2s;
+            position: relative;
+        }
+
+        .deal-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+        .deal-image {
+            width: 140px;
+            height: 140px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            flex-shrink: 0;
+            border: 1px solid #eee;
+        }
+
+        .deal-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .deal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #007185; /* Amazon link color */
+            margin-bottom: 8px;
+            padding-right: 30px;
+            text-decoration: none;
+        }
+        .deal-title:hover { color: #c40000; text-decoration: underline; }
+
+        .deal-metrics {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .temp-badge {
+            background: #ffebe6;
+            color: var(--hot-color);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .temp-badge.cold { background: #e6f7ff; color: #0096cc; }
+
+        .deal-price-row {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .price-current { font-size: 24px; font-weight: 700; color: var(--price-color); }
+        .price-old { text-decoration: line-through; color: var(--text-light); font-size: 14px; }
+        .discount-badge { background: var(--primary); color: white; padding: 3px 6px; border-radius: 4px; font-size: 13px; font-weight: bold; }
+
+        .deal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+        }
+
+        .merchant { font-size: 13px; color: var(--text-light); display: flex; align-items: center; gap: 5px;}
+        
+        .btn-view {
+            background: #ff9900; /* Amazon yellow */
+            color: #111;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .btn-view:hover { background: #e38800; }
+
+        .fav-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #ccc;
+            transition: color 0.2s;
+        }
+        .fav-btn.active, .fav-btn:hover { color: var(--primary); }
+
+        .load-more {
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: bold;
+            color: #007185;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .load-more:hover { background: #f8f9fa; }
+
+        /* --- RIGHT COLUMN: SIDEBAR (Set selection, KPIs, Vinted) --- */
+        .sidebar-widget {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .set-selector-container {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+        }
+
+        .set-select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 15px;
+            margin-top: 10px;
+        }
+
+        /* KPIs Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .kpi-box {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #eee;
+        }
+        .kpi-box span.label { display: block; font-size: 11px; color: var(--text-light); text-transform: uppercase; margin-bottom: 4px; }
+        .kpi-box span.value { font-size: 18px; font-weight: bold; color: #111; }
+        .kpi-box.full-width { grid-column: span 2; background: #e6f7ff; border-color: #91d5ff; }
+        .kpi-box.full-width span.value { color: #0050b3; }
+
+        /* Vinted List */
+        .vinted-list { list-style: none; }
+        .vinted-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .vinted-list li:last-child { border-bottom: none; padding-bottom: 0; }
+        .vinted-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; display: block; }
+        .vinted-meta { font-size: 11px; color: var(--text-light); }
+        .vinted-price { font-weight: bold; font-size: 14px; text-align: right; }
+        .vinted-link { font-size: 11px; color: #09b1ba; text-decoration: none; font-weight: bold; display: block; margin-top: 4px; }
+        .vinted-link:hover { text-decoration: underline; }
+
+        @media (max-width: 600px) {
+            .deal-item { flex-direction: column; }
+            .deal-image { width: 100%; height: 200px; margin-bottom: 15px; }
+            .deal-content { padding-right: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🧱 Lego Deal Predictor</h1>
+        <div style="font-size: 14px; color: #ccc;">Features de test actives</div>
+    </header>
+
+    <div class="container">
+        
+        <!-- MAIN COLUMN: THE DEALS FEED -->
+        <main>
+            <!-- Control Panel -->
+            <section class="feed-header" id="options">
+                <div class="filters-group" id="filters">
+                    <label class="filter-chip" title="Feature 2">
+                        <input type="checkbox" id="filter-discount"> > 50% Réduction
+                    </label>
+                    <label class="filter-chip" title="Feature 3">
+                        <input type="checkbox" id="filter-comments"> > 15 Comm.
+                    </label>
+                    <label class="filter-chip" title="Feature 4">
+                        <input type="checkbox" id="filter-hot"> 🔥 Hot Deals
+                    </label>
+                    <label class="filter-chip" title="Feature 14">
+                        <input type="checkbox" id="filter-favorites"> ❤️ Mes Favoris
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <select name="sort" id="sort-select" class="sort-select" title="Feature 5 & 6">
+                        <option value="hot">Trier par : Pertinence (🔥)</option>
+                        <option value="price-asc">Trier par : Prix croissant</option>
+                        <option value="price-desc">Trier par : Prix décroissant</option>
+                        <option value="date-asc">Trier par : Plus récents</option>
+                    </select>
+                    
+                    <select name="show" id="show-select" class="sort-select" title="Feature 0">
+                        <option value="6">Afficher: 6</option>
+                        <option value="12" selected>Afficher: 12</option>
+                        <option value="24">Afficher: 24</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Deal List -->
+            <section class="deal-list" id="deals">
+                
+                <!-- TOP DEAL 1 -->
+                <article class="deal-item">
+                    <button class="fav-btn active" title="Save as favorite (Feature 13)">♥</button>
+                    <div class="deal-image">[Image Set 75192]</div>
+                    <div class="deal-content">
+                        <div>
+                            <div class="deal-metrics">
+                                <span class="temp-badge">🔥 2540°</span>
+                                <span>💬 128 commentaires</span>
+                                <span>🕒 Posté il y a 1h</span>
+                            </div>
+                            <a href="#" target="_blank" class="deal-title">LEGO Star Wars - Millennium Falcon UCS (75192)</a>
+                            <div class="deal-price-row">
+                                <span class="price-current">499,99€</span>
+                                <span class="price-old">849,99€</span>
+                                <span class="discount-badge">-41%</span>
+                            </div>
+                        </div>
+                        <div class="deal-footer">
+                            <span class="merchant">🛒 Amazon.fr</span>
+                            <a href="#" target="_blank" class="btn-view">Voir le deal ↗</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- TOP DEAL 2 -->
+                <article class="deal-item">
+                    <button class="fav-btn" title="Save as favorite (Feature 13)">♥</button>
+                    <div class="deal-image">[Image Set 42115]</div>
+                    <div class="deal-content">
+                        <div>
+                            <div class="deal-metrics">
+                                <span class="temp-badge">🔥 1850°</span>
+                                <span>💬 65 commentaires</span>
+                                <span>🕒 Posté il y a 3h</span>
+                            </div>
+                            <a href="#" target="_blank" class="deal-title">LEGO Technic - Lamborghini Sián FKP 37 (42115)</a>
+                            <div class="deal-price-row">
+                                <span class="price-current">249,00€</span>
+                                <span class="price-old">449,99€</span>
+                                <span class="discount-badge">-45%</span>
+                            </div>
+                        </div>
+                        <div class="deal-footer">
+                            <span class="merchant">🛒 Fnac</span>
+                            <a href="#" target="_blank" class="btn-view">Voir le deal ↗</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- TOP DEAL 3 -->
+                <article class="deal-item">
+                    <button class="fav-btn" title="Save as favorite (Feature 13)">♥</button>
+                    <div class="deal-image">[Image Set 10305]</div>
+                    <div class="deal-content">
+                        <div>
+                            <div class="deal-metrics">
+                                <span class="temp-badge">🔥 980°</span>
+                                <span>💬 42 commentaires</span>
+                                <span>🕒 Posté hier</span>
+                            </div>
+                            <a href="#" target="_blank" class="deal-title">LEGO Icons - Le château des Chevaliers du Lion (10305)</a>
+                            <div class="deal-price-row">
+                                <span class="price-current">319,99€</span>
+                                <span class="price-old">399,99€</span>
+                                <span class="discount-badge">-20%</span>
+                            </div>
+                        </div>
+                        <div class="deal-footer">
+                            <span class="merchant">🛒 LEGO Shop</span>
+                            <a href="#" target="_blank" class="btn-view">Voir le deal ↗</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- NORMAL DEAL 4 -->
+                <article class="deal-item">
+                    <button class="fav-btn" title="Save as favorite (Feature 13)">♥</button>
+                    <div class="deal-image">[Image Set 21330]</div>
+                    <div class="deal-content">
+                        <div>
+                            <div class="deal-metrics">
+                                <span class="temp-badge cold">❄️ 15°</span>
+                                <span>💬 2 commentaires</span>
+                                <span>🕒 Posté il y a 2 jours</span>
+                            </div>
+                            <a href="#" target="_blank" class="deal-title">LEGO Ideas - Maman, j'ai raté l'avion ! (21330)</a>
+                            <div class="deal-price-row">
+                                <span class="price-current">269,99€</span>
+                                <span class="price-old">299,99€</span>
+                                <span class="discount-badge">-10%</span>
+                            </div>
+                        </div>
+                        <div class="deal-footer">
+                            <span class="merchant">🛒 Cdiscount</span>
+                            <a href="#" target="_blank" class="btn-view">Voir le deal ↗</a>
+                        </div>
+                    </div>
+                </article>
+
+                 <!-- NORMAL DEAL 5 -->
+                 <article class="deal-item">
+                    <button class="fav-btn" title="Save as favorite (Feature 13)">♥</button>
+                    <div class="deal-image">[Image Set 75313]</div>
+                    <div class="deal-content">
+                        <div>
+                            <div class="deal-metrics">
+                                <span class="temp-badge">🔥 110°</span>
+                                <span>💬 18 commentaires</span>
+                                <span>🕒 Posté il y a 3 jours</span>
+                            </div>
+                            <a href="#" target="_blank" class="deal-title">LEGO Star Wars - AT-AT UCS (75313)</a>
+                            <div class="deal-price-row">
+                                <span class="price-current">680,00€</span>
+                                <span class="price-old">849,99€</span>
+                                <span class="discount-badge">-20%</span>
+                            </div>
+                        </div>
+                        <div class="deal-footer">
+                            <span class="merchant">🛒 Amazon.de</span>
+                            <a href="#" target="_blank" class="btn-view">Voir le deal ↗</a>
+                        </div>
+                    </div>
+                </article>
+
+            </section>
+
+            <!-- Feature 1: Browse pages / Load More -->
+            <button class="load-more" id="page-select-btn">↻ Charger plus de deals (Page 1/5)</button>
+        </main>
+
+        <!-- RIGHT COLUMN: SIDEBAR -->
+        <aside id="sidebar">
+            
+            <!-- LEGO SET SELECTION -->
+            <section class="sidebar-widget set-selector-container" id="lego-selection">
+                <h2>Recherche par Set</h2>
+                <p style="font-size: 13px; color: #555;">Saisissez un ID (ex: 75192) pour voir ses deals. Laissez vide pour tout voir.</p>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <input type="text" id="lego-set-id-select" class="set-select" style="margin-top: 0;" placeholder="Entrez l'ID du Set...">
+                    <button id="search-btn" style="background: var(--primary); color: white; border: none; border-radius: 6px; padding: 0 15px; cursor: pointer; font-weight: bold; transition: background 0.2s;">🔍</button>
+                </div>
+                <!-- Message d'erreur caché par défaut, à afficher en JS -->
+                <p id="no-result-error" style="display: none; color: var(--primary); font-size: 13px; margin-top: 10px; font-weight: bold;">
+                    ⚠️ Pas de résultat disponible pour ce Set ID.
+                </p>
+            </section>
+
+            <!-- INDICATORS (Feature 8, 9, 10) -->
+            <section class="sidebar-widget" id="indicators">
+                <h2>Statistiques du marché</h2>
+                <div class="kpi-grid">
+                    <div class="kpi-box full-width">
+                        <span class="label">Prix Moyen Actuel</span>
+                        <span class="value" id="avgPrice">--- €</span>
+                    </div>
+                    <div class="kpi-box">
+                        <span class="label">Nb Deals</span>
+                        <span class="value" id="nbDeals">524</span>
+                    </div>
+                    <div class="kpi-box">
+                        <span class="label">Nb Ventes</span>
+                        <span class="value" id="nbSales">1 042</span>
+                    </div>
+                    <div class="kpi-box">
+                        <span class="label">Prix p5</span>
+                        <span class="value" id="p5Price">--- €</span>
+                    </div>
+                    <div class="kpi-box">
+                        <span class="label">Prix p25</span>
+                        <span class="value" id="p25Price">--- €</span>
+                    </div>
+                    <div class="kpi-box">
+                        <span class="label">Prix p50</span>
+                        <span class="value" id="p50Price">--- €</span>
+                    </div>
+                    <div class="kpi-box">
+                        <span class="label">Durée de vie</span>
+                        <span class="value" id="lifetimeValue">---</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VINTED SALES (Feature 7, 12) -->
+            <section class="sidebar-widget" id="vinted-sales">
+                <h2>Dernières ventes Vinted</h2>
+                <ul class="vinted-list" id="vinted-list">
+                    <li>
+                        <div>
+                            <span class="vinted-title">Set 75192 Neuf scellé</span>
+                            <span class="vinted-meta">Vendu : Aujourd'hui • État : Neuf</span>
+                            <a href="#" target="_blank" class="vinted-link">Voir sur Vinted ↗</a>
+                        </div>
+                        <div class="vinted-price">620.00€</div>
+                    </li>
+                    <li>
+                        <div>
+                            <span class="vinted-title">Lamborghini 42115 montée</span>
+                            <span class="vinted-meta">Vendu : Hier • État : Très bon</span>
+                            <a href="#" target="_blank" class="vinted-link">Voir sur Vinted ↗</a>
+                        </div>
+                        <div class="vinted-price">210.00€</div>
+                    </li>
+                    <li>
+                        <div>
+                            <span class="vinted-title">Château 10305 sans boîte</span>
+                            <span class="vinted-meta">Vendu : il y a 3 jours • État : Bon</span>
+                            <a href="#" target="_blank" class="vinted-link">Voir sur Vinted ↗</a>
+                        </div>
+                        <div class="vinted-price">280.00€</div>
+                    </li>
+                </ul>
+            </section>
+
+        </aside>
+
+    </div>
+
+    <!-- Scripts 
     <script type="text/javascript" charset="UTF-8" src="utils.js"></script>
     <script type="text/javascript" charset="UTF-8" src="portfolio.js"></script>
-  </body>
+    -->
+</body>
 </html>
