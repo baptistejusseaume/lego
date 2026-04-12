@@ -18,6 +18,13 @@ async function scrapeADLB(url = 'https://www.avenuedelabrique.com/promotions-et-
     const deals = await avenuedelabrique.scrape(url);
     console.log(deals);
     console.log(`✅ done — ${deals.length} deals found`);
+
+    // Sauvegarde en JSON
+    const outputPath = './sources/avenuedelabrique.json';
+    fs.mkdirSync('./sources', { recursive: true });
+    fs.writeFileSync(outputPath, JSON.stringify(deals, null, 2));
+    console.log(`💾 Deals saved to ${outputPath}`);
+
     process.exit(0);
   } catch (e) {
     console.error(e);
