@@ -30,7 +30,7 @@ console.log(MY_FAVORITE_DEALERS[0]);
 // 1. Create a new variable and assign it the link of the lego set with the highest reduction I can find on these 2 websites
 const HighestReduction ='https://www.avenuedelabrique.com/lego-super-mario/30385-ensemble-d-extension-surprise-de-super-champignon-polybag/p6066';
 // 2. Log the variable
-consol.log(HighestReduction);
+console.log(HighestReduction);
 
 /**
  * 🧱
@@ -423,21 +423,56 @@ const VINTED = [
 
 // 🎯 TODO 11: Compute the average, the p5 and the p25 price value
 // 1. Compute the average price value of the listing
+// On convertit les prix (qui sont des strings comme "89.95") en nombres avec parseFloat
+const vintedPrices = VINTED.map(item => parseFloat(item.price));
+
+const averagePrice = vintedPrices.reduce((sum, price) => sum + price, 0) / vintedPrices.length;
+console.log('Average price:', averagePrice.toFixed(2));
+
 // 2. Compute the p5 price value of the listing
 // 3. Compute the p25 price value of the listing
-// The p25 value (25th percentile) is the lower value expected to be exceeded in 25% of the vinted items
+// Le percentile = on trie les prix, puis on prend la valeur à X% de la liste
+// Exemple : p25 = le prix en dessous duquel se trouvent 25% des articles
+const sortedPrices = [...vintedPrices].sort((a, b) => a - b);
+
+const p5Index = Math.ceil(0.05 * sortedPrices.length) - 1;
+const p25Index = Math.ceil(0.25 * sortedPrices.length) - 1;
+
+const p5 = sortedPrices[p5Index];
+const p25 = sortedPrices[p25Index];
+
+console.log('p5 price:', p5);
+console.log('p25 price:', p25);
 
 // 🎯 TODO 12: Very old listed items
-// // 1. Log if we have very old items (true or false)
-// // A very old item is an item `published` more than 3 weeks ago.
+// 1. Log if we have very old items (true or false)
+// A very old item is an item `published` more than 3 weeks ago.
+// 3 semaines = 21 jours. On compare la date de publication avec "maintenant - 21 jours"
+const THREE_WEEKS_MS = 21 * 24 * 60 * 60 * 1000; // 21 jours en millisecondes
+const now = new Date();
+
+const hasVeryOldItems = VINTED.some(item => {
+  const publishedDate = new Date(item.published);
+  return (now - publishedDate) > THREE_WEEKS_MS;
+});
+
+console.log('Has very old items:', hasVeryOldItems);
 
 // 🎯 TODO 13: Find a specific item
 // 1. Find the item with the uuid `f2c5377c-84f9-571d-8712-98902dcbb913`
+// .find() parcourt le tableau et renvoie le PREMIER élément qui correspond à la condition
+const foundItem = VINTED.find(item => item.uuid === 'f2c5377c-84f9-571d-8712-98902dcbb913');
 // 2. Log the item
+console.log('Found item:', foundItem);
 
 // 🎯 TODO 14: Delete a specific item
 // 1. Delete the item with the uuid `f2c5377c-84f9-571d-8712-98902dcbb913`
+// .filter() crée un NOUVEAU tableau en gardant seulement les éléments qui passent la condition
+// Ici on garde tout SAUF l'article avec cet uuid
+const filteredVinted = VINTED.filter(item => item.uuid !== 'f2c5377c-84f9-571d-8712-98902dcbb913');
 // 2. Log the new list of items
+console.log('Vinted list after deletion:', filteredVinted);
+console.log('Before:', VINTED.length, 'items | After:', filteredVinted.length, 'items');
 
 // 🎯 TODO 5: Save a favorite item
 // We declare and assign a variable called `sealedCamera`
@@ -456,7 +491,13 @@ let camera = sealedCamera;
 camera.favorite = true;
 
 // 1. Log `sealedCamera` and `camera` variables
+console.log('sealedCamera:', sealedCamera);
+console.log('camera:', camera);
 // 2. What do you notice?
+// RÉPONSE : sealedCamera a AUSSI la propriété favorite = true !
+// C'est parce que "let camera = sealedCamera" ne fait PAS une copie.
+// Les deux variables pointent vers le MÊME objet en mémoire.
+// Quand on modifie camera, on modifie aussi sealedCamera.
 
 // we make (again) a new assignment again
 sealedCamera = {
@@ -468,6 +509,12 @@ sealedCamera = {
 };
 
 // 3. Update `camera` property with `favorite` to true WITHOUT changing sealedCamera properties
+// On utilise le spread operator {...} pour créer une VRAIE copie (un nouvel objet)
+// Comme ça, modifier camera ne touche pas sealedCamera
+camera = {...sealedCamera, favorite: true};
+
+console.log('sealedCamera after proper copy:', sealedCamera); // PAS de propriété favorite
+console.log('camera after proper copy:', camera); // A la propriété favorite = true
 
 
 // 🎯 TODO 11: Compute the profitability
@@ -480,7 +527,15 @@ const deal = {
 }
 
 // 1. Compute the potential highest profitability based on the VINTED items
+// La profitabilité = prix de revente sur Vinted - prix d'achat du deal
+// On cherche le prix de vente MAX sur Vinted pour calculer le meilleur profit possible
+const highestVintedPrice = Math.max(...VINTED.map(item => parseFloat(item.price)));
+const profitability = highestVintedPrice - deal.price;
+
 // 2. Log the value
+console.log('Highest Vinted price:', highestVintedPrice);
+console.log('Deal purchase price:', deal.price);
+console.log('Potential highest profitability:', profitability.toFixed(2), '€');
 
 
 
@@ -492,4 +547,9 @@ const deal = {
 
 // 🎯 LAST TODO: Save in localStorage
 // 1. Save MY_FAVORITE_DEALERS in the localStorage
+// localStorage ne stocke que des strings, donc on convertit l'objet en JSON avec JSON.stringify
+localStorage.setItem('favorite-dealers', JSON.stringify(MY_FAVORITE_DEALERS));
+
 // 2. log the localStorage
+// Pour relire, on utilise JSON.parse pour reconvertir le string en objet
+console.log('localStorage:', JSON.parse(localStorage.getItem('favorite-dealers')));
