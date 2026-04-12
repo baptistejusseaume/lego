@@ -19,7 +19,6 @@ async function scrapeADLB(url = 'https://www.avenuedelabrique.com/promotions-et-
     console.log(deals);
     console.log(`✅ done — ${deals.length} deals found`);
 
-    // Sauvegarde en JSON
     const outputPath = './sources/avenuedelabrique.json';
     fs.mkdirSync('./sources', { recursive: true });
     fs.writeFileSync(outputPath, JSON.stringify(deals, null, 2));
@@ -49,7 +48,6 @@ async function scrapeDealabs(url = 'https://www.dealabs.com/groupe/lego') {
     console.log(deals);
     console.log(`✅ done — ${deals.length} deals found`);
 
-    // Save the deals to a JSON file (Step 2 of workshop 3)
     const outputPath = './sources/dealabs.json';
     fs.mkdirSync('./sources', { recursive: true });
     fs.writeFileSync(outputPath, JSON.stringify(deals, null, 2));
@@ -84,17 +82,26 @@ async function scrapeVinted(legoId) {
 // Usage:
 //   node sandbox.js                        → scrape dealabs (default)
 //   node sandbox.js dealabs               → scrape dealabs
+//   node sandbox.js dealabs <url>         → scrape dealabs with custom url
 //   node sandbox.js adlb                  → scrape avenuedelabrique
-//   node sandbox.js vinted 75192         → scrape vinted for set 75192
+//   node sandbox.js adlb <url>            → scrape avenuedelabrique with custom url
+//   node sandbox.js vinted 75192          → scrape vinted for set 75192
 // ============================================================
 
 const [,, command, param] = process.argv;
 
 if (command === 'adlb') {
-  scrapeADLB(param);
+  scrapeADLB(param); // param peut être undefined → utilisera l'URL par défaut
 } else if (command === 'vinted') {
   scrapeVinted(param);
+} else if (command === 'dealabs-local') {
+  scrapeDealabsLocal(param);
+} else if (command === 'dealabs') {
+  scrapeDealabs(param);
+} else if (command && command.startsWith('http')) {
+  // Si on passe directement une URL complète
+  scrapeDealabs(command);
 } else {
-  // Default: scrape dealabs
-  scrapeDealabs(command); // command can be a custom URL or undefined
+  // Aucune commande reconnue → scrape dealabs par défaut
+  scrapeDealabs();
 }
